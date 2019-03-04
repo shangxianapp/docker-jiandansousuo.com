@@ -8,7 +8,7 @@ pipeline {
     stages {
         stage('Clone jiandansousuo.com') {
             steps {
-                checkout
+                checkout \
                     changelog: false,
                     poll: false,
                     scm: [
@@ -22,11 +22,11 @@ pipeline {
                                 $class: 'CloneOption',
                                 noTags: true,
                                 reference: '',
-                                shallow: false
+                                shallow: true
                             ],
                             [
                                 $class: 'RelativeTargetDirectory',
-                                relativeTargetDir: 'dist'
+                                relativeTargetDir: 'www'
                             ]
                         ],
                         submoduleCfg: [],
@@ -40,6 +40,15 @@ pipeline {
             }
         }
 
+        stage('Build html') {
+            steps {
+                nodejs('Node.js-11.9.0') {
+                    sh "yarn -v && node -v"
+                    sh "cd www && yarn install && yarn build"
+                }
+            }
+        }
+
         stage('Sync html') {
             steps {
                 sshPublisher(
@@ -48,7 +57,7 @@ pipeline {
                             configName: 'sg02',
                             transfers: [
                                 sshTransfer(
-                                    cleanRemote: false,
+                                    cleanRemote: true,
                                     excludes: '',
                                     execCommand: 'echo "sync success"',
                                     execTimeout: 120000,
@@ -58,13 +67,13 @@ pipeline {
                                     patternSeparator: '[, ]+',
                                     remoteDirectory: "$WWWROOT_DIR/jiandansousuo.com",
                                     remoteDirectorySDF: false,
-                                    removePrefix: 'dist',
-                                    sourceFiles: 'dist/**/*'
+                                    removePrefix: 'www/public',
+                                    sourceFiles: 'www/public/**/*'
                                 )
                             ],
                             usePromotionTimestamp: false,
                             useWorkspaceInPromotion: false,
-                            verbose: true
+                            verbose: false
                         )
                     ]
                 )
@@ -96,7 +105,7 @@ pipeline {
                             ],
                             usePromotionTimestamp: false,
                             useWorkspaceInPromotion: false,
-                            verbose: true
+                            verbose: false
                         )
                     ]
                 )
